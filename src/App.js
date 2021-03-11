@@ -12,7 +12,7 @@ const ALL_PEOPLE = gql`
 
 const ADD_PERSON = gql`
   mutation AddPerson($name: String) {
-    addPerson(name: $name) {
+    invalidAddPerson(name: $name) {
       id
       name
     }
@@ -27,7 +27,9 @@ export default function App() {
   } = useQuery(ALL_PEOPLE);
 
   const [addPerson] = useMutation(ADD_PERSON, {
-    update: (cache, { data: { addPerson: addPersonData } }) => {
+    update: (cache, { data }) => {
+      const addPersonData = data?.invalidAddPerson
+      if (!addPersonData) return
       const peopleResult = cache.readQuery({ query: ALL_PEOPLE });
 
       cache.writeQuery({
@@ -59,7 +61,17 @@ export default function App() {
         />
         <button
           onClick={() => {
-            addPerson({ variables: { name } });
+            addPerson({
+              variables: { name },
+              optimisticResponse: {
+                __typename: 'Mutation',
+                invalidAddPerson: {
+                  __typename: 'Person',
+                  id: -1,
+                  name,
+                }
+              },
+            });
             setName('');
           }}
         >

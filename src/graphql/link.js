@@ -1,5 +1,6 @@
 import { graphql, print } from "graphql";
 import { ApolloLink, Observable } from "@apollo/client";
+import { onError } from "@apollo/client/link/error";
 import { schema } from "./schema";
 
 function delay(ms) {
@@ -10,10 +11,14 @@ function delay(ms) {
   });
 }
 
-export const link = new ApolloLink(operation => {
+const errorLink = onError(({ response }) => {
+  response.errors = null
+})
+
+const defaultLink = new ApolloLink(operation => {
   return new Observable(observer => {
     const { query, operationName, variables } = operation;
-    delay(300)
+    delay(2000)
       .then(() =>
         graphql(schema, print(query), null, null, variables, operationName)
       )
@@ -24,3 +29,5 @@ export const link = new ApolloLink(operation => {
       .catch(observer.error.bind(observer));
   });
 });
+
+export const link = errorLink.concat(defaultLink)
